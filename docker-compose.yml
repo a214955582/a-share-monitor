@@ -1,0 +1,78 @@
+# Build and runtime dependencies come from backend/requirements.txt only.
+services:
+  web:
+    image: a214955582/a-share-monitor:v1.0
+    container_name: a-share-monitor-web
+    restart: unless-stopped
+    init: true
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "18000", "--app-dir", "backend"]
+    ports:
+      - "18000:8000"
+    environment:
+      POLL_INTERVAL_SECONDS: "15"
+      REGISTRATION_CODE: "akabiga"
+      TZ: "Asia/Shanghai"
+    volumes:
+      - /vol2/1000/Docker/a-share-monitor/data:/app/backend/data
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=3).read()",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  monitor:
+    image: a214955582/a-share-monitor:v1.0
+    container_name: a-share-monitor-monitor
+    restart: unless-stopped
+    init: true
+    command: ["python", "-m", "backend.app.monitor_worker"]
+    volumes:
+      - /vol2/1000/Docker/a-share-monitor/data:/app/backend/data
+    depends_on:
+      web:
+        condition: service_started
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  webhook:
+    image: a214955582/a-share-monitor:v1.0
+    container_name: a-share-monitor-webhook
+    restart: unless-stopped
+    init: true
+    command: ["python", "-m", "backend.app.webhook_worker"]
+    environment:
+      WEBHOOK_BATCH_SIZE: "20"
+      WEBHOOK_MAX_CONCURRENCY: "6"
+      WEBHOOK_QUEUE_WARN_THRESHOLD: "1000"
+      SQLITE_SIZE_WARN_MB: "1024"
+      WEBHOOK_CAPACITY_CHECK_INTERVAL_SECONDS: "60"
+      WEBHOOK_CAPACITY_WARN_COOLDOWN_SECONDS: "600"
+      TZ: "Asia/Shanghai"
+    volumes:
+      - /vol2/1000/Docker/a-share-monitor/data:/app/backend/data
+    depends_on:
+      web:
+        condition: service_started
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+volumes:
+  monitor_data:

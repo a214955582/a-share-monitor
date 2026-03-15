@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>A股股票监视器</title>
+    <link rel="stylesheet" href="/assets/styles.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="hero">
+        <div>
+          <p class="eyebrow">A-Share Monitor</p>
+          <h1>A股股票监视器</h1>
+          <p class="hero-copy">
+            支持多账号注册登录、连续命中规则、独立监控轮询与 Webhook 发送队列的 A 股监控管理台。
+          </p>
+        </div>
+        <div class="hero-actions">
+          <button id="refresh-btn" class="btn btn-secondary">刷新行情</button>
+          <button id="run-once-btn" class="btn btn-primary">立即执行一轮</button>
+        </div>
+      </header>
+
+      <section class="status-grid">
+        <div class="status-card">
+          <span class="status-label">行情源</span>
+          <strong id="system-provider">-</strong>
+        </div>
+        <div class="status-card">
+          <span class="status-label">轮询周期</span>
+          <strong id="system-interval">-</strong>
+          <div class="status-inline-form">
+            <input id="poll-interval-input" type="number" min="5" max="3600" step="5" />
+            <button id="save-poll-interval-btn" class="mini-btn" type="button">保存</button>
+          </div>
+        </div>
+        <div class="status-card">
+          <span class="status-label">监控标的数</span>
+          <strong id="system-monitor-count">0</strong>
+        </div>
+        <div class="status-card">
+          <span class="status-label">最新行情时间</span>
+          <strong id="latest-quote-time">-</strong>
+        </div>
+        <div class="status-card">
+          <span class="status-label">登录状态</span>
+          <strong id="auth-status">未登录</strong>
+          <p id="auth-account-hint" class="status-help"></p>
+          <div class="status-inline-form">
+            <button id="logout-btn" class="mini-btn" type="button">退出登录</button>
+          </div>
+        </div>
+        <div class="status-card">
+          <span class="status-label">最近状态</span>
+          <strong id="run-status">待命</strong>
+        </div>
+      </section>
+
+      <section class="panel auth-panel">
+        <div class="panel-head">
+          <div>
+            <p class="panel-kicker">账号中心</p>
+            <h2>登录、注册与密码重置</h2>
+          </div>
+        </div>
+        <div class="auth-grid">
+          <form id="login-form" class="auth-card">
+            <h3>登录</h3>
+            <label>
+              账号
+              <input id="login-username-input" type="text" placeholder="输入登录账号" required />
+            </label>
+            <label>
+              密码
+              <input id="login-password-input" type="password" placeholder="输入登录密码" required />
+            </label>
+            <button class="btn btn-primary" type="submit">登录</button>
+          </form>
+
+          <form id="register-form" class="auth-card">
+            <h3>注册账号</h3>
+            <label>
+              新账号
+              <input id="register-username-input" type="text" placeholder="设置登录账号" required />
+            </label>
+            <label>
+              新密码
+              <input id="register-password-input" type="password" placeholder="设置登录密码" required />
+            </label>
+            <label>
+              注册码
+              <input id="register-code-input" type="password" placeholder="输入注册码" required />
+            </label>
+            <button class="btn btn-secondary" type="submit">注册并登录</button>
+          </form>
+
+          <form id="reset-password-form" class="auth-card">
+            <h3>忘记密码</h3>
+            <label>
+              账号
+              <input id="reset-username-input" type="text" placeholder="输入已注册账号" required />
+            </label>
+            <label>
+              新密码
+              <input id="reset-password-input" type="password" placeholder="输入新密码" required />
+            </label>
+            <label>
+              注册码
+              <input id="reset-code-input" type="password" placeholder="输入注册码" required />
+            </label>
+            <button class="btn btn-secondary" type="submit">重置并登录</button>
+          </form>
+        </div>
+      </section>
+
+      <main class="content-grid">
+        <section class="panel form-panel">
+          <div class="panel-head">
+            <div>
+              <p class="panel-kicker">配置的标</p>
+              <h2 id="monitor-form-title">新增监控的标</h2>
+            </div>
+            <button id="monitor-reset-btn" class="mini-btn danger" type="button">清空表单</button>
+          </div>
+          <form id="monitor-form" class="form-grid">
+            <input type="hidden" id="monitor-id" />
+
+            <label class="col-third">
+              类型
+              <select id="monitor-type" name="instrument_type"></select>
+            </label>
+
+            <label class="col-third">
+              代码
+              <input id="monitor-code" name="code" placeholder="股票如 600519，指数如 1A0001 / 000001.SH" required />
+            </label>
+
+            <label class="col-third">
+              名称
+              <input id="monitor-name" name="name" placeholder="可选，便于识别" />
+            </label>
+
+            <label class="full-span">
+              企业微信 Webhook
+              <input id="monitor-webhook" name="webhook_url" placeholder="https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=..." required />
+            </label>
+
+            <label class="col-half">
+              @手机号
+              <input id="monitor-mentioned-mobiles" name="mentioned_mobiles" placeholder="多个手机号用,分隔" />
+            </label>
+
+            <label class="col-half">
+              @UserId
+              <input id="monitor-mentioned-user-ids" name="mentioned_user_ids" placeholder="多个UserId用,分隔" />
+            </label>
+
+            <label class="full-span">
+              备注
+              <input id="monitor-note" name="note" placeholder="例如：观察突破、盘中异动、止盈线" />
+            </label>
+
+            <label class="checkbox">
+              <input id="monitor-enabled" type="checkbox" checked />
+              启用这条监控
+            </label>
+
+            <button type="submit" class="btn btn-primary full-span">保存监控</button>
+          </form>
+        </section>
+
+        <section class="panel list-panel">
+          <div class="panel-head">
+            <div>
+              <p class="panel-kicker">监控列表</p>
+              <h2>监控配置</h2>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>类型</th>
+                  <th>代码</th>
+                  <th>名称</th>
+                  <th>当前价</th>
+                  <th>涨跌幅</th>
+                  <th>行情更新时间</th>
+                  <th>规则数</th>
+                  <th>状态</th>
+                  <th>Webhook</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="monitor-table-body"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel rule-panel">
+          <div class="panel-head">
+            <div>
+              <p class="panel-kicker">规则引擎</p>
+              <h2 id="rule-panel-title">请先选择一个监控的标</h2>
+            </div>
+            <button id="rule-reset-btn" class="mini-btn danger" type="button">清空规则表单</button>
+          </div>
+
+          <form id="rule-form" class="form-grid compact">
+            <input type="hidden" id="rule-id" />
+
+            <label class="col-half">
+              字段
+              <select id="rule-field" required></select>
+            </label>
+
+            <label class="col-half">
+              操作符
+              <select id="rule-operator" required></select>
+            </label>
+
+            <label class="col-third">
+              阈值
+              <input id="rule-threshold" type="number" step="0.01" required />
+            </label>
+
+            <label class="col-third">
+              冷却时间(分钟)
+              <input id="rule-cooldown" type="number" min="0" max="1440" value="5" required />
+            </label>
+
+            <label class="col-third">
+              连续命中次数
+              <input id="rule-consecutive-hits" type="number" min="1" max="100" value="1" required />
+            </label>
+
+            <label class="full-span">
+              备注
+              <input id="rule-description" placeholder="例如：连续 3 次站上阈值才提醒" />
+            </label>
+
+            <label class="checkbox">
+              <input id="rule-enabled" type="checkbox" checked />
+              启用这条规则
+            </label>
+
+            <div class="rule-form-actions full-span">
+              <button type="submit" class="btn btn-primary">保存规则</button>
+              <button id="rule-logic-toggle-btn" type="button" class="btn btn-secondary">任一满足</button>
+            </div>
+          </form>
+
+          <div class="table-wrap top-gap">
+            <table>
+              <thead>
+                <tr>
+                  <th>字段</th>
+                  <th>操作</th>
+                  <th>阈值</th>
+                  <th>冷却</th>
+                  <th>连续命中</th>
+                  <th>状态</th>
+                  <th>最近触发</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="rule-table-body"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel alert-panel">
+          <div class="panel-head">
+            <div>
+              <p class="panel-kicker">最近告警</p>
+              <h2>发送记录</h2>
+            </div>
+            <div class="inline-actions">
+              <button id="clear-alerts-btn" class="mini-btn danger" type="button">清空已完成记录</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>时间</th>
+                  <th>代码</th>
+                  <th>状态</th>
+                  <th>命中值</th>
+                  <th>消息摘要</th>
+                </tr>
+              </thead>
+              <tbody id="alert-table-body"></tbody>
+            </table>
+          </div>
+          <div class="pagination-bar">
+            <button id="alert-prev-btn" class="mini-btn" type="button">上一页</button>
+            <span id="alert-page-info" class="muted">第 1 / 1 页</span>
+            <button id="alert-next-btn" class="mini-btn" type="button">下一页</button>
+            <input id="alert-page-input" type="number" min="1" step="1" />
+            <button id="alert-page-go-btn" class="mini-btn" type="button">跳转</button>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div id="toast" class="toast hidden"></div>
+    <script src="/assets/app.js" defer></script>
+  </body>
+</html>
